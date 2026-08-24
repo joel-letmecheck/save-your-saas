@@ -302,12 +302,11 @@
       <div class="chat-title"><span class="online-dot"></span> #growth-campaign</div>
       <div class="chat-meta">LIVE • #growth-campaign</div>
     </div>
-    <button class="skip-intro" id="skipIntro" onclick="skipToMission()" style="display:none;">Skip intro →</button>
     <div class="chat" id="chat"></div>
     <div class="mission" id="mission">
       <div class="mission-kicker">YOUR MISSION</div>
-      <h2>Prepare the SaaS for 1M visitors/day.</h2>
-      <p>Make engineering decisions under pressure. Every decision changes your <b>capacity</b>, <b>technical health</b> and <b>monthly infrastructure bill</b>.</p>
+      <h2>Scale to 1M visitors/day</h2>
+      <p>7 engineering decisions. Each affects capacity, health, and budget.</p>
       <div class="mission-stats">
         <div><span>💰 Budget</span><b>$1,000/month</b></div>
         <div><span>⏱️ Time</span><b>30 seconds / decision</b></div>
@@ -323,22 +322,16 @@
         <div class="kicker">ENGINEERING WAR ROOM</div>
         <div class="stage-title">Decision <span id="stage">1 / 7</span></div>
       </div>
-      <div class="timer-wrap"><div class="label">Time for this decision</div><div class="timer" id="timer">30.0s</div></div>
+      <div class="timer-wrap"><div class="label">⏱️ Time</div><div class="timer" id="timer">30.0s</div></div>
     </div>
 
     <div class="hud">
-      <div class="stat"><div class="label">Monthly budget<span class="tooltip" data-tip="Don't overspend on infrastructure">?</span></div><div class="value" id="budget">$1,000</div></div>
-      <div class="stat"><div class="label">Capacity<span class="tooltip" data-tip="Requests per second your system can handle. Target: ~100K RPS">?</span></div><div class="value" id="capacity">8K RPS</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
-      <div class="stat"><div class="label">Technical health<span class="tooltip" data-tip="Code quality and architectural soundness">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
-      <div class="stat"><div class="label">Traffic pressure<span class="tooltip" data-tip="Business requirement from marketing">?</span></div><div class="value" id="pressure">1M/day</div></div>
+      <div class="stat"><div class="label">💰 Budget<span class="tooltip" data-tip="Monthly infrastructure cost">?</span></div><div class="value" id="budget">$1,000</div></div>
+      <div class="stat"><div class="label">⚡ Capacity<span class="tooltip" data-tip="Target: ~100K RPS">?</span></div><div class="value" id="capacity">8K RPS</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
+      <div class="stat"><div class="label">🧑‍💻 Health<span class="tooltip" data-tip="Code quality">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
+      <div class="stat"><div class="label">🎯 Target<span class="tooltip" data-tip="Marketing goal">?</span></div><div class="value" id="pressure">1M/day</div></div>
     </div>
 
-    <div class="architecture">
-      <div class="node">1M visitors/day</div><div class="arrow">→</div>
-      <div class="node">Vercel MVP</div><div class="arrow">→</div>
-      <div class="node">SaaS APIs</div><div class="arrow">→</div>
-      <div class="node">Supabase PostgreSQL</div>
-    </div>
     <div id="question"></div>
     <div class="feedback" id="feedback"></div>
     <button class="next" id="nextBtn" onclick="nextQuestion()">Continue →</button>
@@ -388,13 +381,13 @@
 <script>
 const questions = [
   {
-    title:"1. Are we actually ready?",
-    text:"The team fires a quick load test. The MVP briefly reaches 100K RPS — then latency climbs and requests start failing. What do you do first?",
+    title:"1. Are we ready?",
+    text:"Load test hits 100K RPS briefly, then latency spikes and requests fail.",
     choices:[
-      ["A","Ship it — we hit 100K RPS.","Peak throughput is not sustained capacity."],
-      ["B","Buy a much bigger server.","Fast, but you don't yet know the bottleneck."],
-      ["C","Establish a baseline with sustained load tests and measure CPU, DB, latency and errors.","Measure before spending."],
-      ["D","Add Redis immediately.","Maybe useful later, but we don't know if reads are the bottleneck."]
+      ["A","Ship it — we hit 100K.","Peak ≠ sustained capacity"],
+      ["B","Buy bigger server","Don't know bottleneck yet"],
+      ["C","Run sustained load tests","Measure before spending"],
+      ["D","Add Redis now","Don't know if reads are the issue"]
     ],
     effects:[
       {cost:0,cap:-5,health:-5,msg:"You shipped on a burst benchmark. The system has no proven sustained capacity.",principle:"💡 Principle: Peak throughput ≠ sustained capacity. Always test under realistic load."},
@@ -404,13 +397,13 @@ const questions = [
     ]
   },
   {
-    title:"2. What does 1M visitors actually mean?",
-    text:"A page view isn't one request. Product pricing is read-heavy; checkout does a DB read and a DB write. What should engineering model before scaling?",
+    title:"2. What does 1M visitors mean?",
+    text:"Each page view = multiple API calls. Product reads + checkout writes.",
     choices:[
-      ["A","1M visitors = 1M RPS.","That confuses daily visitors with requests per second."],
-      ["B","Model page views → API calls → checkout attempts → DB reads/writes, including spikes.","Translate the business target into an engineering workload."],
-      ["C","Only load-test checkout.","You miss the read-heavy traffic that can overwhelm the DB."],
-      ["D","Only test the Vercel frontend.","The backend and DB still need capacity."]
+      ["A","1M visitors = 1M RPS","Confuses daily visitors with RPS"],
+      ["B","Model full request path","Page views → APIs → DB ops"],
+      ["C","Only test checkout","Misses read-heavy traffic"],
+      ["D","Only test frontend","Backend/DB need capacity too"]
     ],
     effects:[
       {cost:0,cap:0,health:-5,msg:"The traffic model is wrong. You are preparing for the wrong workload.",principle:"💡 Principle: Translate business metrics into engineering workload. 1M visitors ≠ 1M RPS."},
@@ -420,13 +413,13 @@ const questions = [
     ]
   },
   {
-    title:"3. The database is doing something stupid.",
-    text:"The Product API repeatedly asks PostgreSQL for the same pricing data. The query is inefficient and retrieves more data than the API needs. What is your first move?",
+    title:"3. Inefficient DB query",
+    text:"Product API hits PostgreSQL repeatedly for same pricing data. Query is slow.",
     choices:[
-      ["A","Buy a bigger database.","More infrastructure can mask inefficient code."],
-      ["B","Add Redis immediately.","Useful later, but first remove avoidable DB work."],
-      ["C","Optimize the query/code: select only needed fields, add the right index and measure again.","Fix the root cause first."],
-      ["D","Add several replicas.","You are multiplying an inefficient workload."]
+      ["A","Buy bigger database","Masks inefficient code"],
+      ["B","Add Redis now","Fix query first"],
+      ["C","Optimize query + index","Fix root cause"],
+      ["D","Add replicas","Multiplies inefficiency"]
     ],
     effects:[
       {cost:500,cap:20,health:-5,msg:"Capacity increased, but the underlying code problem remains. Your monthly bill just went up.",principle:"💡 Principle: Infrastructure can mask code problems, but it costs money every month."},
@@ -436,13 +429,13 @@ const questions = [
     ]
   },
   {
-    title:"4. Product traffic is still hammering Postgres.",
-    text:"The query is now efficient, but thousands of requests ask for the same mostly-static pricing data. What should happen next?",
+    title:"4. Repeated DB reads",
+    text:"Query is efficient now, but thousands of requests hit DB for same static pricing.",
     choices:[
-      ["A","10× the database.","Expensive and wasteful for mostly-static reads."],
-      ["B","Cache product/pricing data in Redis.","Serve hot reads from memory and reduce DB traffic."],
-      ["C","Rewrite the API in C++.","The DB read pattern is the bottleneck, not the language."],
-      ["D","Increase database writes.","That makes the problem worse."]
+      ["A","10× the database","Wasteful for static data"],
+      ["B","Cache in Redis","Serve from memory"],
+      ["C","Rewrite in C++","Wrong layer to optimize"],
+      ["D","Increase writes","Makes it worse"]
     ],
     effects:[
       {cost:900,cap:35,health:0,msg:"You bought a lot of DB capacity for data that barely changes.",principle:"💡 Principle: Don't use expensive persistent storage for data that's read often but changes rarely."},
@@ -452,13 +445,13 @@ const questions = [
     ]
   },
   {
-    title:"5. Checkout is the new bottleneck.",
-    text:"Product reads are healthy. Checkout is not. It performs one DB read + one DB write. At load, the order lookup becomes slow because the query isn't using the right index. What do you do?",
+    title:"5. Checkout bottleneck",
+    text:"Order lookup is slow at load. Missing index on checkout query.",
     choices:[
-      ["A","Increase DB size.","More hardware can help, but the query remains inefficient."],
-      ["B","Put the write path entirely in Redis.","Fast, but you've introduced a durability problem."],
-      ["C","Optimize the order query/index and benchmark again.","Fix the database operation before scaling it."],
-      ["D","Multiply the connection pool by 10.","More connections can make contention worse."]
+      ["A","Increase DB size","Query still inefficient"],
+      ["B","Use Redis for writes","Durability problem"],
+      ["C","Fix query + index","Fix before scaling"],
+      ["D","10× connection pool","Worsens contention"]
     ],
     effects:[
       {cost:700,cap:30,health:-4,msg:"You bought capacity but kept the slow query.",principle:"💡 Principle: Hardware can't fix a missing index. Fix the query first."},
@@ -468,13 +461,13 @@ const questions = [
     ]
   },
   {
-    title:"6. Marketing goes viral.",
-    text:"A campaign spike sends checkout traffic faster than PostgreSQL can process it. The API can accept work, but the database cannot keep up. What architecture helps absorb the burst?",
+    title:"6. Traffic spike",
+    text:"Campaign spike. API accepts work but DB can't keep up.",
     choices:[
-      ["A","Keep every checkout request synchronous.","The database remains directly exposed to the traffic spike."],
-      ["B","Add a queue + workers.","Accept the work, then process it at a controlled rate."],
-      ["C","Add Redis to everything.","Caching doesn't solve a durable write throughput problem."],
-      ["D","Buy a giant database and hope.","Expensive and still vulnerable to sudden bursts."]
+      ["A","Keep synchronous","DB exposed to spike"],
+      ["B","Add queue + workers","Process at controlled rate"],
+      ["C","Redis everything","Doesn't solve writes"],
+      ["D","Giant database","Still vulnerable to bursts"]
     ],
     effects:[
       {cost:0,cap:8,health:-8,msg:"The DB remains the shock absorber. Queue depth and latency explode under spikes.",principle:"💡 Principle: Synchronous writes expose your DB directly to traffic spikes."},
@@ -484,13 +477,13 @@ const questions = [
     ]
   },
   {
-    title:"7. The board wants confidence.",
-    text:"The campaign launches tomorrow. What do you tell the stakeholders?",
+    title:"7. Board confidence",
+    text:"Campaign launches tomorrow. What do you tell stakeholders?",
     choices:[
-      ["A","We hit 1M RPS once, so we're ready.","A peak benchmark doesn't prove sustained capacity."],
-      ["B","We upgraded everything, so we're good.","No evidence, no cost discipline."],
-      ["C","We tested the expected traffic pattern and sustained the peak while measuring latency, errors, DB health, queue depth and cost.","This is the evidence stakeholders actually need."],
-      ["D","Redis is installed, so yes.","A technology choice isn't a readiness certificate."]
+      ["A","We hit 1M RPS once","Peak ≠ sustained"],
+      ["B","We upgraded everything","No evidence"],
+      ["C","We tested sustained load","Measured latency, errors, cost"],
+      ["D","Redis is installed","Tech ≠ readiness"]
     ],
     effects:[
       {cost:0,cap:0,health:-5,msg:"You gave stakeholders a number without proving it can be sustained.",principle:"💡 Principle: Readiness requires sustained load testing, not peak benchmarks."},
@@ -512,14 +505,8 @@ const chatMessages = [
   {who:"Founder", icon:"👨‍💼", text:"Then let's find out."}
 ];
 
-function skipToMission(){
-  document.getElementById("chat").innerHTML="";
-  document.getElementById("skipIntro").style.display="none";
-  document.getElementById("mission").classList.add("show");
-}
 
 function typeChat(i=0){
-  document.getElementById("skipIntro").style.display="block";
   if(i >= chatMessages.length){
     setTimeout(()=>document.getElementById("mission").classList.add("show"), 500);
     return;
