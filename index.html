@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Can Your SaaS Survive 1M Visitors?</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { width:100%; min-height:100%; }
+  body {
+    margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: #0b1020; color: #eef2ff; min-height: 100vh;
+  }
+  .wrap { width:100%; max-width:1180px; margin:auto; padding:28px 36px 44px; }
+  .top { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:20px; }
+  .brand { font-weight:800; letter-spacing:-.03em; font-size:22px; }
+  .tag { color:#a5b4fc; font-size:13px; }
+  .hud {
+    display:grid; grid-template-columns: repeat(5,1fr); gap:10px; margin-bottom:18px;
+  }
+  .stat {
+    background:#121a30; border:1px solid #263354; border-radius:14px; padding:13px 15px;
+  }
+  .label { color:#93a4c7; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+  .value { font-size:20px; font-weight:800; margin-top:4px; }
+  .progress { height:5px; background:#202b49; border-radius:5px; overflow:hidden; margin-top:8px; }
+  .bar { height:100%; background:#7dd3fc; transition:width .35s; }
+  .bar.red { background:#fb7185; }
+  .bar.green { background:#86efac; }
+  .card {
+    background:#10182b; border:1px solid #2a385b; border-radius:20px; padding:30px;
+    box-shadow: 0 20px 70px rgba(0,0,0,.25);
+  }
+  .scenario {
+    display:flex; align-items:center; gap:14px; background:#151f37; border:1px solid #33446d;
+    padding:15px 17px; border-radius:14px; margin:18px 0 24px;
+  }
+  .pulse { width:10px; height:10px; border-radius:50%; background:#fb7185; box-shadow:0 0 0 6px rgba(251,113,133,.12); }
+  h1 { font-size:42px; line-height:1.02; margin:0; letter-spacing:-.045em; }
+  h2 { font-size:27px; margin:0 0 10px; letter-spacing:-.025em; }
+  .sub { color:#aebbd5; line-height:1.55; max-width:780px; }
+  .architecture {
+    display:flex; align-items:center; justify-content:center; gap:9px; flex-wrap:wrap;
+    margin:25px 0; color:#b9c7e5; font-size:13px;
+  }
+  .node { padding:10px 13px; background:#17213a; border:1px solid #34476f; border-radius:10px; }
+  .arrow { color:#64749a; }
+  .choices { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
+  button.choice {
+    text-align:left; border:1px solid #304267; background:#141e35; color:#eef2ff;
+    border-radius:14px; padding:17px; cursor:pointer; transition:.18s;
+  }
+  button.choice:hover { transform:translateY(-2px); border-color:#7dd3fc; background:#172642; }
+  .choice .letter { font-weight:900; color:#7dd3fc; margin-right:8px; }
+  .choice .title { font-weight:750; }
+  .choice-cost span { padding:4px 8px; background:#0e1628; border-radius:6px; }
+  
+  .feedback-overlay {
+    position:fixed; inset:0; z-index:95; display:none; align-items:center; justify-content:center;
+    background:rgba(4,8,18,.92); backdrop-filter:blur(8px); padding:30px;
+  }
+  .feedback-overlay.show { display:flex !important; animation:overlayIn .3s ease; }
+  .feedback-modal {
+    max-width:760px; width:100%; max-height:90vh; overflow:auto;
+    background:#17233c; border:2px solid #3b4f79; border-radius:24px; padding:30px 32px 28px;
+    box-shadow:0 30px 90px rgba(0,0,0,.6); animation:modalIn .4s ease;
+  }
+  .feedback-modal.good { border-color:#4ade80; }
+  .feedback-modal.bad { border-color:#fb7185; }
+  .feedback-modal .modal-kicker {
+    font-size:12px; font-weight:900; letter-spacing:.12em;
+    text-transform:uppercase; color:#93a4c7; margin-bottom:9px;
+  }
+  .feedback-modal h3 { font-size:28px; line-height:1.15; margin:0 0 10px; }
+  .feedback-modal .modal-copy { color:#c4d0e5; font-size:17px; line-height:1.55; }
+  .feedback-modal .consequence { margin-top:20px; }
+  .feedback-modal .continue-dialog {
+    margin-top:20px; width:100%; min-height:62px; border:0; border-radius:14px;
+    background:#e0f2fe; color:#07111f; font-weight:900; font-size:18px; cursor:pointer;
+    position:sticky; bottom:0; z-index:10;
+    box-shadow:0 -10px 20px rgba(11,16,32,.3);
+  }
+  .feedback-modal .continue-dialog:active { transform:scale(0.98); }
+  .feedback-modal .close-hint { text-align:center; color:#7182a5; font-size:11px; margin-top:9px; }
+  @media(max-width:700px){
+    .feedback-overlay { padding:18px; }
+    .feedback-modal { padding:24px 21px; width:96vw; }
+    .feedback-modal h3 { font-size:24px; }
+    .feedback-modal .modal-copy { font-size:16px; }
+  }
+  .feedback {
+    display:none; margin-top:20px; padding:18px; border-radius:14px; background:#151f37; border:1px solid #33446d;
+  }
+  .feedback.show { display:block; }
+  .feedback.good { border-color:#4ade80; }
+  .feedback.bad { border-color:#fb7185; }
+  .feedback h3 { margin:0 0 7px; }
+  .consequence { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:13px; }
+  .mini { background:#0e1628; border-radius:10px; padding:10px; }
+  .mini b { display:block; font-size:16px; margin-top:3px; }
+  .next { 
+    display:none; margin-top:15px; width:100%; padding:13px; border:0; border-radius:12px;
+    background:#e0f2fe; color:#07111f; font-weight:800; cursor:pointer;
+  }
+  .next.show { display:block; }
+
+  .intro-card { max-width:820px; margin:0 auto; overflow:hidden; padding:0; }
+  .chat-top { background:#17213a; padding:18px 22px; border-bottom:1px solid #2d3c60; display:flex; justify-content:space-between; align-items:center; }
+  .chat-title { font-weight:800; }
+  .online-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#4ade80; margin-right:8px; }
+  .chat-meta { color:#7f90b2; font-size:12px; }
+  .chat { padding:24px 26px 8px; min-height:330px; }
+  .message { display:flex; gap:12px; margin:0 0 18px; opacity:0; transform:translateY(8px); animation:msgIn .35s ease forwards; }
+  @keyframes msgIn { to { opacity:1; transform:translateY(0); } }
+  .avatar { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:#202d4a; flex:none; font-size:18px; }
+  .msg-name { font-size:12px; color:#93a4c7; margin-bottom:4px; }
+  .msg-text { font-size:15px; line-height:1.45; background:#17213a; border:1px solid #2c3d62; padding:10px 13px; border-radius:4px 12px 12px 12px; display:inline-block; max-width:650px; }
+  .msg-text strong { color:#7dd3fc; }
+  .typing { color:#7f90b2; font-size:12px; margin:4px 0 12px 48px; }
+  .mission { display:none; border-top:1px solid #29395d; background:#0e1628; padding:24px 26px 28px; }
+  .mission.show { display:block; animation:fade .4s ease; }
+  @keyframes fade { from { opacity:0 } to { opacity:1 } }
+  .mission-kicker,.kicker { color:#7dd3fc; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+  .mission h2 { margin-top:7px; }
+  .mission p { color:#aebbd5; line-height:1.55; }
+  .mission-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
+  .mission-stats div { background:#151f37; border:1px solid #2b3c61; padding:16px; font-size:16px; }
+  .mission-stats span { display:block; color:#91a2c4; font-size:12px; }
+  .mission-stats b { display:block; margin-top:4px; }
+  .start-btn { width:100%; border:0; background:#e0f2fe; color:#07111f; font-weight:900; padding:15px; border-radius:12px; cursor:pointer; font-size:15px; }
+  .start-btn:hover { transform:translateY(-1px); }
+  .game-head { display:flex; justify-content:space-between; align-items:end; margin-bottom:18px; }
+  .stage-title { font-size:26px; font-weight:900; margin-top:5px; }
+  .timer-wrap { text-align:right; }
+  .hud { margin-bottom:18px; }
+
+  .ready-overlay {
+    position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center;
+    background:rgba(11,16,32,.98); backdrop-filter:blur(12px);
+  }
+  .ready-overlay.show { display:flex; }
+  .ready-countdown {
+    font-size:180px; font-weight:900; color:#7dd3fc; animation:pulse 1s ease;
+    text-shadow:0 0 40px rgba(125,211,252,.5);
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+  .play-screen {
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:#0b1020; padding:30px;
+  }
+  .play-panel {
+    width:min(760px,100%); text-align:center; padding:48px 42px; border:1px solid #304267;
+    border-radius:26px; background:#10182b; box-shadow:0 30px 100px rgba(0,0,0,.4);
+  }
+  .play-kicker { color:#7dd3fc; font-size:13px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
+  .play-panel h1 { margin:12px 0 14px; font-size:48px; line-height:1.02; letter-spacing:-.05em; }
+  .play-panel p { color:#aebbd5; font-size:18px; line-height:1.55; margin:0 auto 28px; max-width:600px; }
+  .play-button {
+    width:min(430px,100%); min-height:68px; border:0; border-radius:15px; cursor:pointer;
+    background:#e0f2fe; color:#07111f; font-size:21px; font-weight:900;
+    box-shadow:0 10px 30px rgba(125,211,252,.12);
+  }
+  .play-button:active { transform:scale(.98); }
+  .play-note { margin-top:15px; color:#7182a5; font-size:12px; }
+
+
+
+  .dialogue-box {
+    position:relative;
+    display:inline-block;
+    padding:18px 21px;
+    border-radius:18px;
+    background:#18243e;
+    border:2px solid #3b4f79;
+    box-shadow:0 10px 28px rgba(0,0,0,.22);
+    min-width:260px;
+  }
+  .message.right .dialogue-box {
+    background:#17314a;
+    border-color:#4c7899;
+  }
+  .dialogue-box:after {
+    content:"";
+    position:absolute;
+    bottom:-10px;
+    left:22px;
+    width:18px;
+    height:18px;
+    background:#18243e;
+    border-right:2px solid #3b4f79;
+    border-bottom:2px solid #3b4f79;
+    transform:rotate(45deg);
+  }
+  .message.right .dialogue-box:after {
+    left:auto;
+    right:22px;
+    background:#17314a;
+    border-color:#4c7899;
+  }
+  .message .msg-text {
+    background:transparent;
+    border:0;
+    padding:0;
+    max-width:none;
+    font-size:19px;
+    line-height:1.5;
+  }
+  .message.right .msg-text {
+    background:transparent;
+    border:0;
+  }
+  .message-body { position:relative; }
+  .intro-card { width:100%; max-width:1000px; margin:0 auto; }
+  .chat { min-height:430px; padding:30px 38px 12px; }
+  .message { width:100%; }
+  .message.left { justify-content:flex-start; }
+  .message.right { justify-content:flex-end; }
+  .message.right .avatar { order:2; }
+  .message.right .message-body { text-align:right; }
+  .message.right .msg-text { border-radius:12px 4px 12px 12px; text-align:left; }
+  .message-body { max-width:72%; }
+  .msg-text { font-size:18px; padding:13px 17px; }
+  .msg-name { font-size:13px; }
+  .typing { font-size:13px; margin-left:48px; background:#141e35; border:1px solid #2d3e62; border-radius:14px; padding:7px 12px; width:max-content; }
+  .typing.right { text-align:right; margin-left:0; margin-right:48px; }
+  .mission { padding:30px 38px 34px; }
+  .mission h2 { font-size:30px; }
+  .mission p { font-size:16px; }
+  .mission-stats { gap:14px; }
+  .mission-stats div { padding:16px; font-size:16px; }
+  .start-btn { min-height:58px; font-size:18px; }
+  .choice { min-height:108px; }
+  button.choice { padding:20px; font-size:17px; }
+  .choice .hint { font-size:13px; line-height:1.4; }
+  .stat { min-height:72px; }
+  .value { font-size:22px; }
+  .node { font-size:15px; padding:12px 15px; }
+  .timer { font-size:32px; }
+  .stage-title { font-size:30px; }
+  @media (max-width: 900px) {
+    .wrap { padding:22px 24px 36px; }
+    .hud { grid-template-columns:repeat(2,1fr); }
+    .chat { min-height:420px; padding:24px 22px 10px; }
+    .message-body { max-width:82%; }
+    .mission-stats { grid-template-columns:1fr; }
+  }
+  .footer { margin-top:15px; text-align:center; color:#7182a5; font-size:12px; }
+  .final-overlay {
+    position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center;
+    background:rgba(4,8,18,.92); backdrop-filter:blur(8px); padding:30px;
+  }
+  .final-overlay.show { display:flex !important; animation:overlayIn .3s ease; }
+  @keyframes overlayIn { from{opacity:0} to{opacity:1} }
+  @keyframes modalIn { from{opacity:0; transform:translateY(20px) scale(.95)} to{opacity:1; transform:translateY(0) scale(1)} }
+  .final {
+    display:block; max-width:900px; width:100%; max-height:90vh; overflow:auto; text-align:center;
+    background:#10182b; border:2px solid #3b4f79; border-radius:24px; padding:40px;
+    box-shadow:0 30px 100px rgba(0,0,0,.6); animation:modalIn .4s ease;
+  }
+  .final h1 { display:block; margin:0 0 16px; font-size:42px; }
+  .final .scoregrid { display:grid; }
+  .final .sub { display:block; color:#aebbd5; font-size:16px; line-height:1.6; }
+  .scoregrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:24px 0; }
+  .scorebox { background:#121a30; border:1px solid #2b3b60; padding:16px; border-radius:14px; }
+  .scorebox strong { display:block; font-size:24px; margin-top:5px; }
+  .reset { background:transparent; border:1px solid #3b4d75; color:#cbd5e1; padding:11px 18px; border-radius:10px; cursor:pointer; }
+  .timer {
+    font-variant-numeric:tabular-nums; font-size:26px; font-weight:900; color:#4ade80;
+    transition:color .3s;
+  }
+  .timer.warning { color:#fbbf24; }
+  .timer.danger { color:#fb7185; }
+  @media(max-width:800px){
+    .hud{grid-template-columns:repeat(2,1fr)} .choices{grid-template-columns:1fr}
+    .consequence,.scoregrid{grid-template-columns:1fr} h1{font-size:34px}
+  }
+</style>
+</head>
+<body>
+
+<div class="play-screen" id="playScreen">
+  <div class="play-panel">
+    <div class="play-kicker">LetMeCheck • Scalability Challenge</div>
+    <h1>Can your SaaS survive<br><span style="color:#7dd3fc">1M visitors?</span></h1>
+    <p>Step into the engineering team. Marketing has promised 1M visitors a day. Your job is to get the SaaS ready — without blowing the monthly budget.</p>
+    <button class="play-button" onclick="playConversation()">▶ PLAY</button>
+    <div class="play-note">7 decisions • $1,000 monthly budget • 30 seconds per decision</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="brand">LETMEcheck • Scalability Lab</div>
+      <div class="tag">Can Your SaaS Survive 1M Visitors?</div>
+    </div>
+  </div>
+
+  <div class="card intro-card" id="introCard">
+    <div class="chat-top">
+      <div class="chat-title"><span class="online-dot"></span> #growth-campaign</div>
+      <div class="chat-meta">LIVE • #growth-campaign</div>
+    </div>
+    <button class="skip-intro" id="skipIntro" onclick="skipToMission()" style="display:none;">Skip intro →</button>
+    <div class="chat" id="chat"></div>
+    <div class="mission" id="mission">
+      <div class="mission-kicker">YOUR MISSION</div>
+      <h2>Prepare the SaaS for 1M visitors/day.</h2>
+      <p>Make engineering decisions under pressure. Every decision changes your <b>capacity</b>, <b>technical health</b> and <b>monthly infrastructure bill</b>.</p>
+      <div class="mission-stats">
+        <div><span>💰 Budget</span><b>$1,000/month</b></div>
+        <div><span>⏱️ Time</span><b>30 seconds / decision</b></div>
+        <div><span>🎯 Target</span><b>1M visitors/day</b></div>
+      </div>
+      <button class="start-btn" onclick="startGame()">START SCALING →</button>
+    </div>
+  </div>
+
+  <div class="card" id="gameCard" style="display:none">
+    <div class="game-head">
+      <div>
+        <div class="kicker">ENGINEERING WAR ROOM</div>
+        <div class="stage-title">Decision <span id="stage">1 / 7</span></div>
+      </div>
+      <div class="timer-wrap"><div class="label">Time for this decision</div><div class="timer" id="timer">30.0s</div></div>
+    </div>
+
+    <div class="hud">
+      <div class="stat"><div class="label">Monthly budget<span class="tooltip" data-tip="Don't overspend on infrastructure">?</span></div><div class="value" id="budget">$1,000</div></div>
+      <div class="stat"><div class="label">Capacity<span class="tooltip" data-tip="Requests per second your system can handle. Target: ~100K RPS">?</span></div><div class="value" id="capacity">8K RPS</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
+      <div class="stat"><div class="label">Technical health<span class="tooltip" data-tip="Code quality and architectural soundness">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
+      <div class="stat"><div class="label">Traffic pressure<span class="tooltip" data-tip="Business requirement from marketing">?</span></div><div class="value" id="pressure">1M/day</div></div>
+    </div>
+
+    <div class="architecture">
+      <div class="node">1M visitors/day</div><div class="arrow">→</div>
+      <div class="node">Vercel MVP</div><div class="arrow">→</div>
+      <div class="node">SaaS APIs</div><div class="arrow">→</div>
+      <div class="node">Supabase PostgreSQL</div>
+    </div>
+    <div id="question"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next" id="nextBtn" onclick="nextQuestion()">Continue →</button>
+  </div>
+
+
+  <div class="feedback-overlay" id="feedbackOverlay">
+    <div class="feedback-modal" id="feedbackModal">
+      <div id="feedbackModalContent"></div>
+    </div>
+  </div>
+
+  <div class="ready-overlay" id="readyOverlay">
+    <div class="ready-countdown" id="readyCountdown">3</div>
+  </div>
+
+  <div class="final-overlay" id="finalOverlay">
+    <div class="final" id="finalCard">
+    <h1>🏆 Campaign readiness report</h1>
+    <p class="sub" style="margin:15px auto">You didn't just make the SaaS faster. You traded off engineering effort, infrastructure cost and technical health under pressure.</p>
+    <div class="scoregrid">
+      <div class="scorebox">Remaining budget<strong id="finalBudget"></strong></div>
+      <div class="scorebox">Capacity<strong id="finalCapacity"></strong></div>
+      <div class="scorebox">Technical health<strong id="finalHealth"></strong></div>
+      <div class="scorebox">Engineering score<strong id="finalScore"></strong></div>
+      <div class="scorebox">Decisions<strong id="finalDecisions"></strong></div>
+      <div class="scorebox">Status<strong id="finalStatus"></strong></div>
+    </div>
+    <div id="finalVerdict" style="margin:24px 0; padding:24px; background:#151f37; border:1px solid #33446d; border-radius:16px;"></div>
+    <p class="sub">The lesson: infrastructure can buy capacity, but fixing inefficient code and queries can buy it for $0/month — and with less technical debt.</p>
+    
+    <div style="margin:32px 0; padding:32px; background:#17233c; border:2px solid #3b4f79; border-radius:20px; text-align:center;">
+      <div style="color:#7dd3fc; font-size:12px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; margin-bottom:12px;">HERE'S THE UNCOMFORTABLE PART</div>
+      <h2 style="margin:0 0 16px; font-size:28px; line-height:1.3;">Most scaling problems don't start with infrastructure.<br>They start with the code.</h2>
+      <p style="color:#aebbd5; font-size:17px; line-height:1.6; margin:0 0 24px; max-width:600px; margin-left:auto; margin-right:auto;">What if you could find those problems <strong style="color:#7dd3fc;">before your traffic does?</strong></p>
+      <div style="font-size:32px; font-weight:900; margin:20px 0; letter-spacing:-.02em;">LetMeCheck</div>
+      <p style="color:#93a4c7; font-size:15px; margin:0;">The blood test for your codebase.</p>
+    </div>
+    
+    <button class="reset" onclick="resetGame()">Play again</button>
+    </div>
+  </div>
+
+  <div class="footer">Prototype: every decision has a cost and a consequence.</div>
+</div>
+
+<script>
+const questions = [
+  {
+    title:"1. Are we actually ready?",
+    text:"The team fires a quick load test. The MVP briefly reaches 100K RPS — then latency climbs and requests start failing. What do you do first?",
+    choices:[
+      ["A","Ship it — we hit 100K RPS.","Peak throughput is not sustained capacity."],
+      ["B","Buy a much bigger server.","Fast, but you don't yet know the bottleneck."],
+      ["C","Establish a baseline with sustained load tests and measure CPU, DB, latency and errors.","Measure before spending."],
+      ["D","Add Redis immediately.","Maybe useful later, but we don't know if reads are the bottleneck."]
+    ],
+    effects:[
+      {cost:0,cap:-5,health:-5,msg:"You shipped on a burst benchmark. The system has no proven sustained capacity.",principle:"💡 Principle: Peak throughput ≠ sustained capacity. Always test under realistic load."},
+      {cost:500,cap:15,health:-3,msg:"You bought capacity before identifying the bottleneck. The DB problem is still hiding.",principle:"💡 Principle: Measure before you scale. Throwing hardware at unknown problems wastes money."},
+      {cost:0,cap:5,health:8,msg:"Good call. You now have a baseline and can see where the system actually degrades.",principle:"💡 Principle: Establish a baseline first. You can't optimize what you can't measure."},
+      {cost:180,cap:8,health:0,msg:"You added a cache without evidence. It helps a little, but you may have spent money solving the wrong problem.",principle:"💡 Principle: Solutions should target identified bottlenecks, not assumptions."}
+    ]
+  },
+  {
+    title:"2. What does 1M visitors actually mean?",
+    text:"A page view isn't one request. Product pricing is read-heavy; checkout does a DB read and a DB write. What should engineering model before scaling?",
+    choices:[
+      ["A","1M visitors = 1M RPS.","That confuses daily visitors with requests per second."],
+      ["B","Model page views → API calls → checkout attempts → DB reads/writes, including spikes.","Translate the business target into an engineering workload."],
+      ["C","Only load-test checkout.","You miss the read-heavy traffic that can overwhelm the DB."],
+      ["D","Only test the Vercel frontend.","The backend and DB still need capacity."]
+    ],
+    effects:[
+      {cost:0,cap:0,health:-5,msg:"The traffic model is wrong. You are preparing for the wrong workload.",principle:"💡 Principle: Translate business metrics into engineering workload. 1M visitors ≠ 1M RPS."},
+      {cost:0,cap:10,health:10,msg:"Excellent. You now know what the marketing promise actually means for the backend.",principle:"💡 Principle: Model the full request path: page views → API calls → DB operations → spikes."},
+      {cost:0,cap:4,health:0,msg:"You learned about checkout but ignored a major read workload.",principle:"💡 Principle: Test the complete workload, not just one operation type."},
+      {cost:0,cap:2,health:-2,msg:"Frontend capacity alone doesn't prove the SaaS can process orders.",principle:"💡 Principle: The frontend is just the entry point. Backend and DB capacity matter most."}
+    ]
+  },
+  {
+    title:"3. The database is doing something stupid.",
+    text:"The Product API repeatedly asks PostgreSQL for the same pricing data. The query is inefficient and retrieves more data than the API needs. What is your first move?",
+    choices:[
+      ["A","Buy a bigger database.","More infrastructure can mask inefficient code."],
+      ["B","Add Redis immediately.","Useful later, but first remove avoidable DB work."],
+      ["C","Optimize the query/code: select only needed fields, add the right index and measure again.","Fix the root cause first."],
+      ["D","Add several replicas.","You are multiplying an inefficient workload."]
+    ],
+    effects:[
+      {cost:500,cap:20,health:-5,msg:"Capacity increased, but the underlying code problem remains. Your monthly bill just went up.",principle:"💡 Principle: Infrastructure can mask code problems, but it costs money every month."},
+      {cost:180,cap:25,health:2,msg:"Redis reduces pressure, but you left inefficient database work in the application.",principle:"💡 Principle: Caching helps, but fixing the query first would have saved you $180/month."},
+      {cost:0,cap:35,health:14,msg:"Best engineering tradeoff. Better code increased capacity without adding monthly infrastructure cost.",principle:"💡 Principle: The cheapest scaling solution is often fixing inefficient code."},
+      {cost:450,cap:12,health:-4,msg:"You scaled around the problem instead of fixing it. Cost increased significantly.",principle:"💡 Principle: Multiplying inefficient operations just creates more inefficiency."}
+    ]
+  },
+  {
+    title:"4. Product traffic is still hammering Postgres.",
+    text:"The query is now efficient, but thousands of requests ask for the same mostly-static pricing data. What should happen next?",
+    choices:[
+      ["A","10× the database.","Expensive and wasteful for mostly-static reads."],
+      ["B","Cache product/pricing data in Redis.","Serve hot reads from memory and reduce DB traffic."],
+      ["C","Rewrite the API in C++.","The DB read pattern is the bottleneck, not the language."],
+      ["D","Increase database writes.","That makes the problem worse."]
+    ],
+    effects:[
+      {cost:900,cap:35,health:0,msg:"You bought a lot of DB capacity for data that barely changes.",principle:"💡 Principle: Don't use expensive persistent storage for data that's read often but changes rarely."},
+      {cost:180,cap:55,health:8,msg:"Great. Product reads now mostly terminate at Redis instead of PostgreSQL.",principle:"💡 Principle: Cache data that's read frequently but changes infrequently."},
+      {cost:700,cap:8,health:-2,msg:"You spent heavily on the wrong layer. The DB is still serving repeated reads.",principle:"💡 Principle: Optimize the right layer. The language isn't the bottleneck here."},
+      {cost:300,cap:-5,health:-8,msg:"You've increased work rather than reducing it.",principle:"💡 Principle: Understand the problem before applying solutions."}
+    ]
+  },
+  {
+    title:"5. Checkout is the new bottleneck.",
+    text:"Product reads are healthy. Checkout is not. It performs one DB read + one DB write. At load, the order lookup becomes slow because the query isn't using the right index. What do you do?",
+    choices:[
+      ["A","Increase DB size.","More hardware can help, but the query remains inefficient."],
+      ["B","Put the write path entirely in Redis.","Fast, but you've introduced a durability problem."],
+      ["C","Optimize the order query/index and benchmark again.","Fix the database operation before scaling it."],
+      ["D","Multiply the connection pool by 10.","More connections can make contention worse."]
+    ],
+    effects:[
+      {cost:700,cap:30,health:-4,msg:"You bought capacity but kept the slow query.",principle:"💡 Principle: Hardware can't fix a missing index. Fix the query first."},
+      {cost:250,cap:45,health:-12,msg:"Fast isn't the same as durable. You created a risky persistence architecture.",principle:"💡 Principle: Orders need durability. Redis is for caching, not primary storage."},
+      {cost:0,cap:45,health:15,msg:"Excellent. A query/index improvement increased checkout capacity without recurring infrastructure cost.",principle:"💡 Principle: The right index can turn an O(n) operation into O(log n) — for $0/month."},
+      {cost:150,cap:5,health:-10,msg:"You added pressure to a database that is already struggling.",principle:"💡 Principle: More connections to a slow query just creates more contention."}
+    ]
+  },
+  {
+    title:"6. Marketing goes viral.",
+    text:"A campaign spike sends checkout traffic faster than PostgreSQL can process it. The API can accept work, but the database cannot keep up. What architecture helps absorb the burst?",
+    choices:[
+      ["A","Keep every checkout request synchronous.","The database remains directly exposed to the traffic spike."],
+      ["B","Add a queue + workers.","Accept the work, then process it at a controlled rate."],
+      ["C","Add Redis to everything.","Caching doesn't solve a durable write throughput problem."],
+      ["D","Buy a giant database and hope.","Expensive and still vulnerable to sudden bursts."]
+    ],
+    effects:[
+      {cost:0,cap:8,health:-8,msg:"The DB remains the shock absorber. Queue depth and latency explode under spikes.",principle:"💡 Principle: Synchronous writes expose your DB directly to traffic spikes."},
+      {cost:300,cap:70,health:12,msg:"Great. The queue absorbs bursts and workers drain orders at a sustainable rate.",principle:"💡 Principle: Queues decouple request acceptance from processing. Users get fast responses."},
+      {cost:180,cap:18,health:-3,msg:"Redis helps reads, but the durable checkout write still needs a controlled processing path.",principle:"💡 Principle: Caching doesn't solve write throughput problems."},
+      {cost:1100,cap:55,health:-2,msg:"A huge DB buys capacity, but you spent more than half the budget on brute force.",principle:"💡 Principle: Architecture beats hardware. A queue + modest DB outperforms a giant DB."}
+    ]
+  },
+  {
+    title:"7. The board wants confidence.",
+    text:"The campaign launches tomorrow. What do you tell the stakeholders?",
+    choices:[
+      ["A","We hit 1M RPS once, so we're ready.","A peak benchmark doesn't prove sustained capacity."],
+      ["B","We upgraded everything, so we're good.","No evidence, no cost discipline."],
+      ["C","We tested the expected traffic pattern and sustained the peak while measuring latency, errors, DB health, queue depth and cost.","This is the evidence stakeholders actually need."],
+      ["D","Redis is installed, so yes.","A technology choice isn't a readiness certificate."]
+    ],
+    effects:[
+      {cost:0,cap:0,health:-5,msg:"You gave stakeholders a number without proving it can be sustained.",principle:"💡 Principle: Readiness requires sustained load testing, not peak benchmarks."},
+      {cost:0,cap:0,health:-3,msg:"You gave confidence without evidence.",principle:"💡 Principle: 'We upgraded' isn't a readiness report. Show measured capacity."},
+      {cost:0,cap:10,health:10,msg:"Correct. Readiness is a measured operating envelope, not a technology checklist.",principle:"💡 Principle: Stakeholders need evidence: sustained throughput, latency, error rates, and cost."},
+      {cost:0,cap:0,health:-2,msg:"Redis alone doesn't prove the entire system can survive the campaign.",principle:"💡 Principle: Technology choices don't equal readiness. Measure the complete system."}
+    ]
+  }
+];
+
+
+const chatMessages = [
+  {who:"Marketing", icon:"🚀", text:"Guys... we've got some good news."},
+  {who:"Founder", icon:"👨‍💼", text:"What happened?"},
+  {who:"Marketing", icon:"🚀", text:"The campaign is approved. We're expecting <strong>1M visitors/day.</strong>"},
+  {who:"Founder", icon:"👨‍💼", text:"Can our SaaS handle that?"},
+  {who:"Engineering", icon:"👨‍💻", text:"...How much time do we have?"},
+  {who:"Marketing", icon:"🚀", text:"Campaign goes live tomorrow."},
+  {who:"Founder", icon:"👨‍💼", text:"Then let's find out."}
+];
+
+function skipToMission(){
+  document.getElementById("chat").innerHTML="";
+  document.getElementById("skipIntro").style.display="none";
+  document.getElementById("mission").classList.add("show");
+}
+
+function typeChat(i=0){
+  document.getElementById("skipIntro").style.display="block";
+  if(i >= chatMessages.length){
+    setTimeout(()=>document.getElementById("mission").classList.add("show"), 500);
+    return;
+  }
+
+  const chat=document.getElementById("chat");
+  const m=chatMessages[i];
+  const isEngineering = m.who === "Engineering";
+
+  const typing=document.createElement("div");
+  typing.className="typing" + (isEngineering ? " right" : "");
+  typing.textContent=m.who+" is typing…";
+  chat.appendChild(typing);
+  chat.scrollTop=chat.scrollHeight;
+
+  setTimeout(()=>{
+    typing.remove();
+
+    const el=document.createElement("div");
+    el.className="message " + (isEngineering ? "right" : "left");
+    el.innerHTML=`
+      <div class="avatar">${m.icon}</div>
+      <div class="message-body">
+        <div class="msg-name">${m.who}</div>
+        <div class="dialogue-box"><div class="msg-text" id="typing-msg-${i}"></div></div>
+      </div>`;
+    chat.appendChild(el);
+
+    const target=el.querySelector(".msg-text");
+    const text=document.createElement("span");
+    target.appendChild(text);
+
+    // True character-by-character typing animation.
+    const plain = m.text.replace(/<strong>|<\/strong>/g,"");
+    let pos=0;
+    const speed = isEngineering ? 42 : 32;
+
+    function typeChar(){
+      if(pos < plain.length){
+        text.textContent += plain[pos++];
+        chat.scrollTop=chat.scrollHeight;
+        setTimeout(typeChar, speed);
+      } else {
+        setTimeout(()=>typeChat(i+1), 650);
+      }
+    }
+    typeChar();
+  }, 700);
+}
+
+function playConversation(){
+  document.getElementById("playScreen").style.display="none";
+  document.getElementById("introCard").style.display="block";
+  document.getElementById("mission").classList.remove("show");
+  document.getElementById("chat").innerHTML="";
+  typeChat();
+}
+
+function resetGame(){
+  q=0; budget=1000; capacity=8; health=55; score=0; decisions=0; timer=30; answered=false;
+  document.getElementById("finalOverlay").classList.remove("show");
+  document.getElementById("gameCard").style.display="none";
+  document.getElementById("playScreen").style.display="flex";
+  render();
+}
+
+function startGame(){
+  document.getElementById("introCard").style.display="none";
+  document.getElementById("gameCard").style.display="block";
+  window.scrollTo({top:0,behavior:"smooth"});
+  showReadyCountdown();
+}
+
+function showReadyCountdown(){
+  const overlay = document.getElementById("readyOverlay");
+  const countdown = document.getElementById("readyCountdown");
+  overlay.classList.add("show");
+  let count = 3;
+  countdown.textContent = count;
+  
+  const interval = setInterval(()=>{
+    count--;
+    if(count > 0){
+      countdown.textContent = count;
+    } else {
+      countdown.textContent = "GO!";
+      setTimeout(()=>{
+        overlay.classList.remove("show");
+        showQuestion();
+      }, 500);
+      clearInterval(interval);
+    }
+  }, 1000);
+}
+
+let q=0, budget=1000, capacity=8, health=55, score=0, decisions=0, timer=30, timerHandle, answered=false;
+
+function money(n){ return "$"+Math.max(0,Math.round(n)).toLocaleString(); }
+function render(){
+  document.getElementById("budget").textContent=money(budget);
+  document.getElementById("capacity").textContent=Math.round(capacity)+"K RPS";
+  document.getElementById("capbar").style.width=Math.min(100,Math.max(3,capacity/10))+"%";
+  document.getElementById("health").textContent=Math.max(0,Math.min(100,Math.round(health)))+"%";
+  document.getElementById("healthbar").style.width=Math.max(0,Math.min(100,health))+"%";
+  document.getElementById("stage").textContent=(q+1)+" / 7";
+}
+function showQuestion(){
+  clearInterval(timerHandle);
+  const stageEl=document.getElementById("stage");
+  if(stageEl) stageEl.textContent=`${q+1} / 7`;
+  timer=30;
+  document.getElementById("timer").textContent="30.0s";
+  document.getElementById("stage").textContent=(q+1)+" / 7";
+  answered=false;
+  const x=questions[q];
+  document.getElementById("question").innerHTML=
+    `<h2>${x.title}</h2><p class="sub">${x.text}</p>
+     <div class="choices">${x.choices.map((c,i)=>{
+       const e = x.effects[i];
+       const costText = e.cost ? `💰 +$${e.cost}` : `💰 $0`;
+       const capText = (e.cap>=0?'+':'')+e.cap+'K';
+       const healthText = (e.health>=0?'+':'')+e.health+'%';
+       return `
+       <button class="choice" onclick="answer(${i})">
+         <div><span class="letter">${c[0]}</span><span class="title">${c[1]}</span></div>
+         <div class="hint">${c[2]}</div>
+         <div class="choice-cost">
+           <span>${costText}</span>
+           <span>⚡ ${capText}</span>
+           <span>🧑‍💻 ${healthText}</span>
+         </div>
+       </button>`;
+     }).join("")}</div>`;
+  document.getElementById("feedback").className="feedback";
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("nextBtn").className="next";
+  render();
+  timerHandle=setInterval(tick,100);
+}
+function answer(i){
+  if(answered) return;
+  answered=true; decisions++;
+  clearInterval(timerHandle);
+
+  const x=questions[q], e=x.effects[i];
+  budget-=e.cost; capacity+=e.cap; health+=e.health;
+  const optimal = [2,1,2,1,2,1,2][q]===i;
+  score += optimal ? 1000 : Math.max(100, 500 + e.cap*4 + e.health*5 - e.cost/2);
+
+  const modal=document.getElementById("feedbackModal");
+  const overlay=document.getElementById("feedbackOverlay");
+  modal.className="feedback-modal "+(optimal?"good":"bad");
+
+  const costText=e.cost ? "+$"+e.cost.toLocaleString()+"/month" : "$0/month";
+  const capText=(e.cap>=0?"+":"")+e.cap+"K RPS";
+  const healthText=(e.health>=0?"+":"")+e.health+"%";
+  const newCap = Math.round(capacity);
+  const newHealth = Math.max(0,Math.min(100,Math.round(health)));
+
+  const costColor = e.cost > 0 ? '#fb7185' : '#4ade80';
+  const capColor = e.cap >= 0 ? '#4ade80' : '#fb7185';
+  const healthColor = e.health >= 0 ? '#4ade80' : '#fb7185';
+  const budgetColor = budget <= 200 ? '#fb7185' : budget <= 500 ? '#fbbf24' : '#4ade80';
+  const capProgressColor = newCap >= 80 ? '#4ade80' : newCap >= 50 ? '#fbbf24' : '#fb7185';
+  const healthProgressColor = newHealth >= 70 ? '#4ade80' : newHealth >= 50 ? '#fbbf24' : '#fb7185';
+
+  document.getElementById("feedbackModalContent").innerHTML=`
+    <div class="modal-kicker">${optimal ? "ENGINEERING RESULT" : "TRADE-OFF"}</div>
+    <h3>${optimal ? "✅ Strong engineering decision" : "⚠️ You can survive — but at a price"}</h3>
+    <div class="modal-copy">${e.msg}</div>
+    ${e.principle ? `<p style="color:#7dd3fc; margin:16px 0 0; font-size:15px; font-weight:600;">${e.principle}</p>` : ''}
+    <div class="consequence">
+      <div class="mini">💰 Cost<b style="color:${costColor}">${costText}</b><small style="display:block;color:${budgetColor};margin-top:4px;font-weight:700;">Budget: ${money(budget)}</small></div>
+      <div class="mini">⚡ Capacity<b style="color:${capColor}">${capText}</b><small style="display:block;color:${capProgressColor};margin-top:4px;font-weight:700;">Now: ${newCap}K RPS</small></div>
+      <div class="mini">🧑‍💻 Health<b style="color:${healthColor}">${healthText}</b><small style="display:block;color:${healthProgressColor};margin-top:4px;font-weight:700;">Now: ${newHealth}%</small></div>
+    </div>
+    ${budget<=0 ? '<p style="color:#fb7185;font-weight:800;margin:16px 0 0">💸 Budget exhausted. The campaign is now financially at risk.</p>' : ''}
+    <button class="continue-dialog" onclick="nextQuestion()">Continue →</button>
+    <div class="close-hint">Your choice has been applied to the system.</div>
+  `;
+
+  document.querySelectorAll(".choice").forEach(b=>b.disabled=true);
+  overlay.classList.add("show");
+  render();
+}
+
+function nextQuestion(){
+  document.getElementById("feedbackOverlay").classList.remove("show");
+  if(q<6){ q++; showQuestion(); }
+  else finish();
+}
+function finish(){
+  clearInterval(timerHandle);
+  document.getElementById("finalOverlay").classList.add("show");
+  document.getElementById("finalBudget").textContent=money(budget);
+  document.getElementById("finalCapacity").textContent=Math.round(capacity)+"K RPS";
+  document.getElementById("finalHealth").textContent=Math.max(0,Math.min(100,Math.round(health)))+"%";
+  document.getElementById("finalScore").textContent=Math.max(0,Math.round(score)).toLocaleString();
+  document.getElementById("finalDecisions").textContent=decisions+"/7";
+  
+  // Determine result level
+  let status, verdict, verdictClass;
+  if(budget <= 0) {
+    status = "🔴 FAILED";
+    verdict = "<h3 style='color:#fb7185; margin:0 0 8px;'>Budget Exceeded</h3><p style='color:#c4d0e5; margin:0;'>Marketing can bring the traffic. Your infrastructure isn't ready for it — and you've overspent trying to prepare.</p>";
+    verdictClass = "bad";
+  } else if(health >= 75 && budget >= 400 && capacity >= 80) {
+    status = "🟢 EXCELLENT";
+    verdict = "<h3 style='color:#4ade80; margin:0 0 8px;'>Outstanding Engineering</h3><p style='color:#c4d0e5; margin:0;'>You scaled the system without blindly throwing infrastructure at the problem. You optimized code, fixed queries, and used caching strategically.</p>";
+    verdictClass = "good";
+  } else if(health >= 65 && budget > 0 && capacity >= 60) {
+    status = "🟢 READY";
+    verdict = "<h3 style='color:#4ade80; margin:0 0 8px;'>Ready for Launch</h3><p style='color:#c4d0e5; margin:0;'>You reached the target. The system can handle the traffic, though there are areas that could be optimized further.</p>";
+    verdictClass = "good";
+  } else if(budget > 0 && capacity >= 40) {
+    status = "🟡 RISKY";
+    verdict = "<h3 style='color:#fbbf24; margin:0 0 8px;'>Risky Architecture</h3><p style='color:#c4d0e5; margin:0;'>The system may handle the traffic, but your architecture has significant weaknesses. Technical debt is accumulating.</p>";
+    verdictClass = "";
+  } else {
+    status = "🔴 NOT READY";
+    verdict = "<h3 style='color:#fb7185; margin:0 0 8px;'>Insufficient Capacity</h3><p style='color:#c4d0e5; margin:0;'>The infrastructure cannot sustain 1M visitors/day. You need to revisit your scaling decisions.</p>";
+    verdictClass = "bad";
+  }
+  
+  document.getElementById("finalStatus").textContent=status;
+  const verdictEl = document.getElementById("finalVerdict");
+  verdictEl.innerHTML = verdict;
+  if(verdictClass) verdictEl.style.borderColor = verdictClass === "good" ? "#4ade80" : "#fb7185";
+}
+function tick(){
+  timer-=0.1; 
+  const timerEl = document.getElementById("timer");
+  timerEl.textContent=Math.max(0,timer).toFixed(1)+"s";
+  
+  // Change color based on time remaining
+  if(timer > 20) {
+    timerEl.className = "timer";
+  } else if(timer > 10) {
+    timerEl.className = "timer warning";
+  } else {
+    timerEl.className = "timer danger";
+  }
+  if(timer<=0){
+    clearInterval(timerHandle);
+    if(!answered){
+      answered=true; decisions++;
+      // Apply timeout penalty
+      health -= 5;
+      
+      const modal=document.getElementById("feedbackModal");
+      const overlay=document.getElementById("feedbackOverlay");
+      modal.className="feedback-modal bad";
+      
+      document.getElementById("feedbackModalContent").innerHTML=`
+        <div class="modal-kicker">TIME EXPIRED</div>
+        <h3>⏰ You ran out of time</h3>
+        <div class="modal-copy">Marketing doesn't wait. In production, indecision is a decision — and it's usually the wrong one.</div>
+        <div class="consequence">
+          <div class="mini">💰 Monthly cost<b>$0/month</b></div>
+          <div class="mini">⚡ Capacity<b>+0K RPS</b></div>
+          <div class="mini">🧑‍💻 Technical health<b>-5%</b></div>
+        </div>
+        <button class="continue-dialog" onclick="nextQuestion()">Continue →</button>
+        <div class="close-hint">No action was taken. The system remains unchanged.</div>
+      `;
+      
+      document.querySelectorAll(".choice").forEach(b=>b.disabled=true);
+      overlay.classList.add("show");
+      render();
+    }
+  }
+}
+</script>
+</body>
+</html>
