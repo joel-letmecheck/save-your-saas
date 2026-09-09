@@ -384,6 +384,21 @@
       <p style="color:#93a4c7; font-size:15px; margin:0;">The blood test for your codebase.</p>
     </div>
     
+    <div id="leaderboardSection" style="margin:24px 0; padding:24px; background:#151f37; border:1px solid #33446d; border-radius:16px;">
+      <h3 style="margin:0 0 8px; font-size:22px;">🏆 Join the Leaderboard</h3>
+      <p style="color:#aebbd5; font-size:14px; margin:0 0 16px;">Enter your details to compete with other engineers. Optional — skip if you prefer.</p>
+      <div id="leaderboardForm" style="display:flex; flex-direction:column; gap:12px; max-width:400px; margin:0 auto;">
+        <input type="text" id="lbName" placeholder="Your name" style="padding:12px 16px; background:#0e1628; border:1px solid #2b3c61; border-radius:10px; color:#eef2ff; font-size:15px;">
+        <input type="email" id="lbEmail" placeholder="Your email" style="padding:12px 16px; background:#0e1628; border:1px solid #2b3c61; border-radius:10px; color:#eef2ff; font-size:15px;">
+        <button onclick="submitToLeaderboard()" style="padding:12px; background:#7dd3fc; color:#07111f; border:none; border-radius:10px; font-weight:800; font-size:16px; cursor:pointer;">Submit my score →</button>
+        <a href="leaderboard.html" style="text-align:center; color:#7dd3fc; font-size:13px; text-decoration:none; margin-top:4px;">View leaderboard →</a>
+      </div>
+      <div id="leaderboardSuccess" style="display:none; text-align:center; padding:16px;">
+        <p style="color:#4ade80; font-weight:700; font-size:16px; margin:0 0 8px;">✅ You're on the leaderboard!</p>
+        <a href="leaderboard.html" style="color:#7dd3fc; font-size:14px; text-decoration:none;">View leaderboard →</a>
+      </div>
+    </div>
+    
     <button class="reset" onclick="resetGame()">Play again</button>
     </div>
   </div>
@@ -805,6 +820,66 @@ function tick(){
       overlay.classList.add("show");
       render();
     }
+  }
+}
+// --- Leaderboard (JSONBin.io) ---
+const JSONBIN_BIN_ID = 'YOUR_BIN_ID_HERE';
+const JSONBIN_API_KEY = 'YOUR_API_KEY_HERE';
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+async function submitToLeaderboard(){
+  const name = document.getElementById('lbName').value.trim();
+  const email = document.getElementById('lbEmail').value.trim();
+  if(!name || !email){
+    alert('Please enter your name and email to join the leaderboard.');
+    return;
+  }
+
+  const entry = {
+    name: name,
+    email: email,
+    score: Math.max(0, Math.round(score)),
+    budget: Math.max(0, Math.round(budget)),
+    capacity: Math.round(capacity),
+    health: Math.max(0, Math.min(100, Math.round(health))),
+    decisions: decisions,
+    status: document.getElementById('finalStatus').textContent,
+    date: new Date().toISOString()
+  };
+
+  const btn = event.target;
+  btn.textContent = 'Submitting...';
+  btn.disabled = true;
+
+  try {
+    // GET current entries first
+    const getRes = await fetch(JSONBIN_URL, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const data = await getRes.json();
+    const entries = (data.record && data.record.entries) || [];
+    entries.push(entry);
+    entries.sort((a,b) => b.score - a.score);
+
+    // PUT back with new entry added
+    const putRes = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      },
+      body: JSON.stringify({ entries: entries })
+    });
+
+    if(!putRes.ok) throw new Error('Failed to submit');
+
+    document.getElementById('leaderboardForm').style.display = 'none';
+    document.getElementById('leaderboardSuccess').style.display = 'block';
+  } catch(err) {
+    console.error('Leaderboard error:', err);
+    btn.textContent = 'Submit my score →';
+    btn.disabled = false;
+    alert('Could not submit to leaderboard. Please try again later.');
   }
 }
 </script>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard — Save Your SaaS</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: #0b1020; color: #eef2ff; min-height: 100vh;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .header h1 { font-size: 36px; margin: 0 0 8px; letter-spacing: -.03em; }
+  .header p { color: #aebbd5; font-size: 15px; margin: 0; }
+  .back { display: inline-block; margin-bottom: 20px; color: #7dd3fc; text-decoration: none; font-size: 14px; }
+  .back:hover { text-decoration: underline; }
+  .loading { text-align: center; padding: 60px 0; color: #93a4c7; font-size: 16px; }
+  .lb-table { width: 100%; border-collapse: collapse; }
+  .lb-table th {
+    text-align: left; padding: 12px 16px; color: #93a4c7; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid #263354;
+  }
+  .lb-table td {
+    padding: 14px 16px; border-bottom: 1px solid #1a2642; font-size: 15px;
+  }
+  .lb-table tr:hover { background: #121a30; }
+  .rank { font-weight: 900; font-size: 18px; width: 50px; }
+  .rank-1 { color: #fbbf24; }
+  .rank-2 { color: #c0c0c0; }
+  .rank-3 { color: #cd7f32; }
+  .name { font-weight: 700; }
+  .score { font-weight: 800; color: #7dd3fc; }
+  .status { font-size: 13px; }
+  .empty { text-align: center; padding: 60px 0; color: #7182a5; }
+  .stats { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
+  .stat-pill {
+    background: #121a30; border: 1px solid #263354; border-radius: 10px;
+    padding: 8px 14px; font-size: 13px; color: #93a4c7;
+  }
+  .stat-pill b { color: #eef2ff; font-size: 16px; display: block; }
+  @media(max-width:600px) {
+    .lb-table th:nth-child(4), .lb-table td:nth-child(4),
+    .lb-table th:nth-child(5), .lb-table td:nth-child(5) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" class="back">← Back to game</a>
+  <div class="header">
+    <h1>🏆 Leaderboard</h1>
+    <p>Top engineers who saved their SaaS</p>
+  </div>
+  <div class="stats" id="lbStats"></div>
+  <div id="leaderboardContent">
+    <div class="loading">Loading leaderboard...</div>
+  </div>
+</div>
+
+<script>
+const JSONBIN_BIN_ID = 'YOUR_BIN_ID_HERE';
+const JSONBIN_API_KEY = 'YOUR_API_KEY_HERE';
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+async function loadLeaderboard(){
+  try {
+    const res = await fetch(JSONBIN_URL, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const data = await res.json();
+    const entries = (data.record && data.record.entries) || [];
+
+    if(entries.length === 0){
+      document.getElementById('leaderboardContent').innerHTML =
+        '<div class="empty">No entries yet. Be the first to play!</div>';
+      return;
+    }
+
+    entries.sort((a,b) => b.score - a.score);
+
+    // Stats
+    const totalPlayers = entries.length;
+    const avgScore = Math.round(entries.reduce((s,e) => s + e.score, 0) / totalPlayers);
+    const topScore = entries[0].score;
+    document.getElementById('lbStats').innerHTML = `
+      <div class="stat-pill">Players<b>${totalPlayers}</b></div>
+      <div class="stat-pill">Avg Score<b>${avgScore.toLocaleString()}</b></div>
+      <div class="stat-pill">Top Score<b>${topScore.toLocaleString()}</b></div>
+    `;
+
+    // Table
+    let html = '<table class="lb-table"><thead><tr>';
+    html += '<th class="rank">#</th><th>Name</th><th>Score</th><th>Capacity</th><th>Health</th><th>Status</th>';
+    html += '</tr></thead><tbody>';
+
+    entries.forEach((e, i) => {
+      const rank = i + 1;
+      const rankClass = rank <= 3 ? `rank-${rank}` : '';
+      const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+      html += `<tr>
+        <td class="rank ${rankClass}">${medal || rank}</td>
+        <td class="name">${escapeHtml(e.name)}</td>
+        <td class="score">${e.score.toLocaleString()}</td>
+        <td>${e.capacity}K RPS</td>
+        <td>${e.health}%</td>
+        <td class="status">${e.status || '—'}</td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('leaderboardContent').innerHTML = html;
+  } catch(err) {
+    console.error('Leaderboard load error:', err);
+    document.getElementById('leaderboardContent').innerHTML =
+      '<div class="empty">Could not load leaderboard. Please try again later.</div>';
+  }
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+loadLeaderboard();
+</script>
+</body>
+</html>
