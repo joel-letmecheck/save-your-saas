@@ -92,7 +92,7 @@ async function loadLeaderboard(){
 
     // Table
     let html = '<table class="lb-table"><thead><tr>';
-    html += '<th class="rank">#</th><th>Name</th><th>Score</th><th>Capacity</th><th>Health</th><th>Status</th>';
+    html += '<th class="rank">#</th><th>Name</th><th>Score</th><th>Speed</th><th>Quality</th><th>Status</th>';
     html += '</tr></thead><tbody>';
 
     entries.forEach((e, i) => {
@@ -103,7 +103,7 @@ async function loadLeaderboard(){
         <td class="rank ${rankClass}">${medal || rank}</td>
         <td class="name">${escapeHtml(e.name)}</td>
         <td class="score">${e.score.toLocaleString()}</td>
-        <td>${e.capacity}K RPS</td>
+        <td>${e.capacity}K/sec</td>
         <td>${e.health}%</td>
         <td class="status">${e.status || '—'}</td>
       </tr>`;

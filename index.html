@@ -342,8 +342,8 @@
 
     <div class="hud">
       <div class="stat"><div class="label">💰 Budget<span class="tooltip" data-tip="Monthly infrastructure cost">?</span></div><div class="value" id="budget">$1,000</div></div>
-      <div class="stat"><div class="label">⚡ Capacity<span class="tooltip" data-tip="Target: ~100K RPS">?</span></div><div class="value" id="capacity">8K RPS</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
-      <div class="stat"><div class="label">🧑‍💻 Health<span class="tooltip" data-tip="Code quality">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
+      <div class="stat"><div class="label">⚡ Website Speed<span class="tooltip" data-tip="How many visitors your site can handle per second">?</span></div><div class="value" id="capacity">8K/sec</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
+      <div class="stat"><div class="label">🧑‍💻 Code Quality<span class="tooltip" data-tip="How well-organized and efficient your code is">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
     </div>
 
     <div id="question"></div>
@@ -368,8 +368,8 @@
     <p class="sub" style="margin:15px auto">You didn't just make the SaaS faster. You traded off engineering effort, infrastructure cost and technical health under pressure.</p>
     <div class="scoregrid">
       <div class="scorebox">Remaining budget<strong id="finalBudget"></strong></div>
-      <div class="scorebox">Capacity<strong id="finalCapacity"></strong></div>
-      <div class="scorebox">Technical health<strong id="finalHealth"></strong></div>
+      <div class="scorebox">Website speed<strong id="finalCapacity"></strong></div>
+      <div class="scorebox">Code quality<strong id="finalHealth"></strong></div>
       <div class="scorebox">Engineering score<strong id="finalScore"></strong></div>
       <div class="scorebox">Decisions<strong id="finalDecisions"></strong></div>
       <div class="scorebox">Status<strong id="finalStatus"></strong></div>
@@ -782,7 +782,7 @@ let q=0, budget=1000, capacity=8, health=55, score=0, decisions=0, timer=45, ans
 function money(n){ return "$"+Math.max(0,Math.round(n)).toLocaleString(); }
 function render(){
   document.getElementById("budget").textContent=money(budget);
-  document.getElementById("capacity").textContent=Math.round(capacity)+"K RPS";
+  document.getElementById("capacity").textContent=Math.round(capacity)+"K/sec";
   document.getElementById("capbar").style.width=Math.min(100,Math.max(3,capacity/10))+"%";
   document.getElementById("health").textContent=Math.max(0,Math.min(100,Math.round(health)))+"%";
   document.getElementById("healthbar").style.width=Math.max(0,Math.min(100,health))+"%";
@@ -808,8 +808,8 @@ function showQuestion(){
          <div><span class="letter">${c[0]}</span><span class="title">${c[1]}</span></div>
          <div class="choice-cost">
            <span>${costText}</span>
-           <span>⚡ ${capText}</span>
-           <span>🧑‍💻 ${healthText}</span>
+           <span>⚡ Speed ${capText}</span>
+           <span>🧑‍💻 Quality ${healthText}</span>
          </div>
        </button>`;
      }).join("")}</div>`;
@@ -852,10 +852,10 @@ function answer(i){
         <span style="color:#93a4c7;">Budget:</span><span style="color:${budgetColor}; font-weight:700;">${money(budget)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-top:8px;">
-        <span style="color:#93a4c7;">Capacity:</span><span style="color:${capProgressColor}; font-weight:700;">${newCap}K RPS</span>
+        <span style="color:#93a4c7;">Website Speed:</span><span style="color:${capProgressColor}; font-weight:700;">${newCap}K/sec</span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-top:8px;">
-        <span style="color:#93a4c7;">Health:</span><span style="color:${healthProgressColor}; font-weight:700;">${newHealth}%</span>
+        <span style="color:#93a4c7;">Code Quality:</span><span style="color:${healthProgressColor}; font-weight:700;">${newHealth}%</span>
       </div>
     </div>
     ${e.principle ? `<button class="principle-toggle" onclick="togglePrinciple(this)"><span>💡</span> Why?</button>
@@ -878,7 +878,7 @@ function finish(){
   clearInterval(timerHandle);
   document.getElementById("finalOverlay").classList.add("show");
   document.getElementById("finalBudget").textContent=money(budget);
-  document.getElementById("finalCapacity").textContent=Math.round(capacity)+"K RPS";
+  document.getElementById("finalCapacity").textContent=Math.round(capacity)+"K/sec";
   document.getElementById("finalHealth").textContent=Math.max(0,Math.min(100,Math.round(health)))+"%";
   document.getElementById("finalScore").textContent=Math.max(0,Math.round(score)).toLocaleString();
   document.getElementById("finalDecisions").textContent=decisions+"/7";
