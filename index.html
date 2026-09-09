@@ -16,7 +16,7 @@
   .brand { font-weight:800; letter-spacing:-.03em; font-size:22px; }
   .tag { color:#a5b4fc; font-size:13px; }
   .hud {
-    display:grid; grid-template-columns: repeat(5,1fr); gap:10px; margin-bottom:18px;
+    display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom:18px;
   }
   .stat {
     background:#121a30; border:1px solid #263354; border-radius:14px; padding:13px 15px;
@@ -82,6 +82,15 @@
   }
   .feedback-modal .continue-dialog:active { transform:scale(0.98); }
   .feedback-modal .close-hint { text-align:center; color:#7182a5; font-size:11px; margin-top:9px; }
+  .principle-toggle {
+    background:transparent; border:1px solid #3b4d75; color:#7dd3fc; padding:8px 14px;
+    border-radius:8px; cursor:pointer; font-size:13px; font-weight:700; margin-top:16px;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .principle-toggle:hover { background:#1a2642; }
+  .principle-content { display:none; margin-top:12px; padding:16px; background:#0e1628;
+    border-radius:10px; border:1px solid #2b3c61; }
+  .principle-content.show { display:block; animation:fade .3s ease; }
   @media(max-width:700px){
     .feedback-overlay { padding:18px; }
     .feedback-modal { padding:24px 21px; width:96vw; }
@@ -267,10 +276,15 @@
   .reset { background:transparent; border:1px solid #3b4d75; color:#cbd5e1; padding:11px 18px; border-radius:10px; cursor:pointer; }
   .timer {
     font-variant-numeric:tabular-nums; font-size:26px; font-weight:900; color:#4ade80;
-    transition:color .3s;
+    transition:color .3s; cursor:pointer; user-select:none;
   }
+  .timer:hover { opacity:0.8; }
   .timer.warning { color:#fbbf24; }
   .timer.danger { color:#fb7185; }
+  .timer.paused { color:#93a4c7; }
+  .timer::after { content:''; margin-left:8px; font-size:16px; }
+  .timer.paused::after { content:'▶'; }
+  .timer:not(.paused)::after { content:'⏸'; }
   @media(max-width:800px){
     .hud{grid-template-columns:repeat(2,1fr)} .choices{grid-template-columns:1fr}
     .consequence,.scoregrid{grid-template-columns:1fr} h1{font-size:34px}
@@ -285,7 +299,7 @@
     <h1>Can your SaaS survive<br><span style="color:#7dd3fc">1M visitors?</span></h1>
     <p>Step into the engineering team. Marketing has promised 1M visitors a day. Your job is to get the SaaS ready — without blowing the monthly budget.</p>
     <button class="play-button" onclick="playConversation()">▶ PLAY</button>
-    <div class="play-note">7 decisions • $1,000 monthly budget • 30 seconds per decision</div>
+    <div class="play-note">7 decisions • $1,000 monthly budget • 45 seconds per decision</div>
   </div>
 </div>
 
@@ -309,7 +323,7 @@
       <p>7 engineering decisions. Each affects capacity, health, and budget.</p>
       <div class="mission-stats">
         <div><span>💰 Budget</span><b>$1,000/month</b></div>
-        <div><span>⏱️ Time</span><b>30 seconds / decision</b></div>
+        <div><span>⏱️ Time</span><b>45 seconds / decision</b></div>
         <div><span>🎯 Target</span><b>1M visitors/day</b></div>
       </div>
       <button class="start-btn" onclick="startGame()">START SCALING →</button>
@@ -322,14 +336,13 @@
         <div class="kicker">ENGINEERING WAR ROOM</div>
         <div class="stage-title">Decision <span id="stage">1 / 7</span></div>
       </div>
-      <div class="timer-wrap"><div class="label">⏱️ Time</div><div class="timer" id="timer">30.0s</div></div>
+      <div class="timer-wrap"><div class="label">⏱️ Time (click to pause)</div><div class="timer" id="timer" onclick="togglePause()">45.0s</div></div>
     </div>
 
     <div class="hud">
       <div class="stat"><div class="label">💰 Budget<span class="tooltip" data-tip="Monthly infrastructure cost">?</span></div><div class="value" id="budget">$1,000</div></div>
       <div class="stat"><div class="label">⚡ Capacity<span class="tooltip" data-tip="Target: ~100K RPS">?</span></div><div class="value" id="capacity">8K RPS</div><div class="progress"><div class="bar" id="capbar" style="width:8%"></div></div></div>
       <div class="stat"><div class="label">🧑‍💻 Health<span class="tooltip" data-tip="Code quality">?</span></div><div class="value" id="health">55%</div><div class="progress"><div class="bar green" id="healthbar" style="width:55%"></div></div></div>
-      <div class="stat"><div class="label">🎯 Target<span class="tooltip" data-tip="Marketing goal">?</span></div><div class="value" id="pressure">1M/day</div></div>
     </div>
 
     <div id="question"></div>
@@ -384,10 +397,10 @@ const questions = [
     title:"1. Are we ready?",
     text:"Load test hits 100K RPS briefly, then latency spikes and requests fail.",
     choices:[
-      ["A","Ship it — we hit 100K.","Peak ≠ sustained capacity"],
-      ["B","Buy bigger server","Don't know bottleneck yet"],
-      ["C","Run sustained load tests","Measure before spending"],
-      ["D","Add Redis now","Don't know if reads are the issue"]
+      ["A","Ship it — we hit 100K."],
+      ["B","Buy bigger server"],
+      ["C","Run sustained load tests"],
+      ["D","Add Redis now"]
     ],
     effects:[
       {cost:0,cap:-5,health:-5,msg:"You shipped on a burst benchmark. The system has no proven sustained capacity.",principle:"💡 Principle: Peak throughput ≠ sustained capacity. Always test under realistic load."},
@@ -400,10 +413,10 @@ const questions = [
     title:"2. What does 1M visitors mean?",
     text:"Each page view = multiple API calls. Product reads + checkout writes.",
     choices:[
-      ["A","1M visitors = 1M RPS","Confuses daily visitors with RPS"],
-      ["B","Model full request path","Page views → APIs → DB ops"],
-      ["C","Only test checkout","Misses read-heavy traffic"],
-      ["D","Only test frontend","Backend/DB need capacity too"]
+      ["A","1M visitors = 1M RPS"],
+      ["B","Model full request path"],
+      ["C","Only test checkout"],
+      ["D","Only test frontend"]
     ],
     effects:[
       {cost:0,cap:0,health:-5,msg:"The traffic model is wrong. You are preparing for the wrong workload.",principle:"💡 Principle: Translate business metrics into engineering workload. 1M visitors ≠ 1M RPS."},
@@ -416,10 +429,10 @@ const questions = [
     title:"3. Inefficient DB query",
     text:"Product API hits PostgreSQL repeatedly for same pricing data. Query is slow.",
     choices:[
-      ["A","Buy bigger database","Masks inefficient code"],
-      ["B","Add Redis now","Fix query first"],
-      ["C","Optimize query + index","Fix root cause"],
-      ["D","Add replicas","Multiplies inefficiency"]
+      ["A","Buy bigger database"],
+      ["B","Add Redis now"],
+      ["C","Optimize query + index"],
+      ["D","Add replicas"]
     ],
     effects:[
       {cost:500,cap:20,health:-5,msg:"Capacity increased, but the underlying code problem remains. Your monthly bill just went up.",principle:"💡 Principle: Infrastructure can mask code problems, but it costs money every month."},
@@ -432,10 +445,10 @@ const questions = [
     title:"4. Repeated DB reads",
     text:"Query is efficient now, but thousands of requests hit DB for same static pricing.",
     choices:[
-      ["A","10× the database","Wasteful for static data"],
-      ["B","Cache in Redis","Serve from memory"],
-      ["C","Rewrite in C++","Wrong layer to optimize"],
-      ["D","Increase writes","Makes it worse"]
+      ["A","10× the database"],
+      ["B","Cache in Redis"],
+      ["C","Rewrite in C++"],
+      ["D","Increase writes"]
     ],
     effects:[
       {cost:900,cap:35,health:0,msg:"You bought a lot of DB capacity for data that barely changes.",principle:"💡 Principle: Don't use expensive persistent storage for data that's read often but changes rarely."},
@@ -448,10 +461,10 @@ const questions = [
     title:"5. Checkout bottleneck",
     text:"Order lookup is slow at load. Missing index on checkout query.",
     choices:[
-      ["A","Increase DB size","Query still inefficient"],
-      ["B","Use Redis for writes","Durability problem"],
-      ["C","Fix query + index","Fix before scaling"],
-      ["D","10× connection pool","Worsens contention"]
+      ["A","Increase DB size"],
+      ["B","Use Redis for writes"],
+      ["C","Fix query + index"],
+      ["D","10× connection pool"]
     ],
     effects:[
       {cost:700,cap:30,health:-4,msg:"You bought capacity but kept the slow query.",principle:"💡 Principle: Hardware can't fix a missing index. Fix the query first."},
@@ -464,10 +477,10 @@ const questions = [
     title:"6. Traffic spike",
     text:"Campaign spike. API accepts work but DB can't keep up.",
     choices:[
-      ["A","Keep synchronous","DB exposed to spike"],
-      ["B","Add queue + workers","Process at controlled rate"],
-      ["C","Redis everything","Doesn't solve writes"],
-      ["D","Giant database","Still vulnerable to bursts"]
+      ["A","Keep synchronous"],
+      ["B","Add queue + workers"],
+      ["C","Redis everything"],
+      ["D","Giant database"]
     ],
     effects:[
       {cost:0,cap:8,health:-8,msg:"The DB remains the shock absorber. Queue depth and latency explode under spikes.",principle:"💡 Principle: Synchronous writes expose your DB directly to traffic spikes."},
@@ -480,10 +493,10 @@ const questions = [
     title:"7. Board confidence",
     text:"Campaign launches tomorrow. What do you tell stakeholders?",
     choices:[
-      ["A","We hit 1M RPS once","Peak ≠ sustained"],
-      ["B","We upgraded everything","No evidence"],
-      ["C","We tested sustained load","Measured latency, errors, cost"],
-      ["D","Redis is installed","Tech ≠ readiness"]
+      ["A","We hit 1M RPS once"],
+      ["B","We upgraded everything"],
+      ["C","We tested sustained load"],
+      ["D","Redis is installed"]
     ],
     effects:[
       {cost:0,cap:0,health:-5,msg:"You gave stakeholders a number without proving it can be sustained.",principle:"💡 Principle: Readiness requires sustained load testing, not peak benchmarks."},
@@ -496,13 +509,9 @@ const questions = [
 
 
 const chatMessages = [
-  {who:"Marketing", icon:"🚀", text:"Guys... we've got some good news."},
-  {who:"Founder", icon:"👨‍💼", text:"What happened?"},
   {who:"Marketing", icon:"🚀", text:"The campaign is approved. We're expecting <strong>1M visitors/day.</strong>"},
-  {who:"Founder", icon:"👨‍💼", text:"Can our SaaS handle that?"},
-  {who:"Engineering", icon:"👨‍💻", text:"...How much time do we have?"},
-  {who:"Marketing", icon:"🚀", text:"Campaign goes live tomorrow."},
-  {who:"Founder", icon:"👨‍💼", text:"Then let's find out."}
+  {who:"Engineering", icon:"👨‍💻", text:"How much time do we have?"},
+  {who:"Marketing", icon:"🚀", text:"Campaign launches tomorrow."}
 ];
 
 
@@ -566,11 +575,28 @@ function playConversation(){
 }
 
 function resetGame(){
-  q=0; budget=1000; capacity=8; health=55; score=0; decisions=0; timer=30; answered=false;
+  q=0; budget=1000; capacity=8; health=55; score=0; decisions=0; timer=45; answered=false; isPaused=false;
   document.getElementById("finalOverlay").classList.remove("show");
   document.getElementById("gameCard").style.display="none";
   document.getElementById("playScreen").style.display="flex";
   render();
+}
+
+function togglePrinciple(btn){
+  const content = btn.nextElementSibling;
+  content.classList.toggle("show");
+  btn.innerHTML = content.classList.contains("show") ? '<span>💡</span> Hide' : '<span>💡</span> Why?';
+}
+
+function togglePause(){
+  if(answered) return;
+  isPaused = !isPaused;
+  const timerEl = document.getElementById("timer");
+  if(isPaused) {
+    timerEl.classList.add("paused");
+  } else {
+    timerEl.classList.remove("paused");
+  }
 }
 
 function startGame(){
@@ -602,7 +628,7 @@ function showReadyCountdown(){
   }, 1000);
 }
 
-let q=0, budget=1000, capacity=8, health=55, score=0, decisions=0, timer=30, timerHandle, answered=false;
+let q=0, budget=1000, capacity=8, health=55, score=0, decisions=0, timer=45, answered=false, timerHandle=null, isPaused=false;
 
 function money(n){ return "$"+Math.max(0,Math.round(n)).toLocaleString(); }
 function render(){
@@ -614,11 +640,10 @@ function render(){
   document.getElementById("stage").textContent=(q+1)+" / 7";
 }
 function showQuestion(){
-  clearInterval(timerHandle);
+  timer=45; isPaused=false; clearInterval(timerHandle);
   const stageEl=document.getElementById("stage");
   if(stageEl) stageEl.textContent=`${q+1} / 7`;
-  timer=30;
-  document.getElementById("timer").textContent="30.0s";
+  document.getElementById("timer").textContent="45.0s";
   document.getElementById("stage").textContent=(q+1)+" / 7";
   answered=false;
   const x=questions[q];
@@ -632,7 +657,6 @@ function showQuestion(){
        return `
        <button class="choice" onclick="answer(${i})">
          <div><span class="letter">${c[0]}</span><span class="title">${c[1]}</span></div>
-         <div class="hint">${c[2]}</div>
          <div class="choice-cost">
            <span>${costText}</span>
            <span>⚡ ${capText}</span>
@@ -666,9 +690,6 @@ function answer(i){
   const newCap = Math.round(capacity);
   const newHealth = Math.max(0,Math.min(100,Math.round(health)));
 
-  const costColor = e.cost > 0 ? '#fb7185' : '#4ade80';
-  const capColor = e.cap >= 0 ? '#4ade80' : '#fb7185';
-  const healthColor = e.health >= 0 ? '#4ade80' : '#fb7185';
   const budgetColor = budget <= 200 ? '#fb7185' : budget <= 500 ? '#fbbf24' : '#4ade80';
   const capProgressColor = newCap >= 80 ? '#4ade80' : newCap >= 50 ? '#fbbf24' : '#fb7185';
   const healthProgressColor = newHealth >= 70 ? '#4ade80' : newHealth >= 50 ? '#fbbf24' : '#fb7185';
@@ -677,15 +698,21 @@ function answer(i){
     <div class="modal-kicker">${optimal ? "ENGINEERING RESULT" : "TRADE-OFF"}</div>
     <h3>${optimal ? "✅ Strong engineering decision" : "⚠️ You can survive — but at a price"}</h3>
     <div class="modal-copy">${e.msg}</div>
-    ${e.principle ? `<p style="color:#7dd3fc; margin:16px 0 0; font-size:15px; font-weight:600;">${e.principle}</p>` : ''}
-    <div class="consequence">
-      <div class="mini">💰 Cost<b style="color:${costColor}">${costText}</b><small style="display:block;color:${budgetColor};margin-top:4px;font-weight:700;">Budget: ${money(budget)}</small></div>
-      <div class="mini">⚡ Capacity<b style="color:${capColor}">${capText}</b><small style="display:block;color:${capProgressColor};margin-top:4px;font-weight:700;">Now: ${newCap}K RPS</small></div>
-      <div class="mini">🧑‍💻 Health<b style="color:${healthColor}">${healthText}</b><small style="display:block;color:${healthProgressColor};margin-top:4px;font-weight:700;">Now: ${newHealth}%</small></div>
+    <div style="margin-top:16px; padding:12px 16px; background:#0e1628; border-radius:10px; border:1px solid #2b3c61;">
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+        <span style="color:#93a4c7;">Budget:</span><span style="color:${budgetColor}; font-weight:700;">${money(budget)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-top:8px;">
+        <span style="color:#93a4c7;">Capacity:</span><span style="color:${capProgressColor}; font-weight:700;">${newCap}K RPS</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-top:8px;">
+        <span style="color:#93a4c7;">Health:</span><span style="color:${healthProgressColor}; font-weight:700;">${newHealth}%</span>
+      </div>
     </div>
+    ${e.principle ? `<button class="principle-toggle" onclick="togglePrinciple(this)"><span>💡</span> Why?</button>
+    <div class="principle-content">${e.principle}</div>` : ''}
     ${budget<=0 ? '<p style="color:#fb7185;font-weight:800;margin:16px 0 0">💸 Budget exhausted. The campaign is now financially at risk.</p>' : ''}
     <button class="continue-dialog" onclick="nextQuestion()">Continue →</button>
-    <div class="close-hint">Your choice has been applied to the system.</div>
   `;
 
   document.querySelectorAll(".choice").forEach(b=>b.disabled=true);
@@ -737,14 +764,15 @@ function finish(){
   if(verdictClass) verdictEl.style.borderColor = verdictClass === "good" ? "#4ade80" : "#fb7185";
 }
 function tick(){
+  if(isPaused) return;
   timer-=0.1; 
   const timerEl = document.getElementById("timer");
   timerEl.textContent=Math.max(0,timer).toFixed(1)+"s";
   
   // Change color based on time remaining
-  if(timer > 20) {
+  if(timer > 30) {
     timerEl.className = "timer";
-  } else if(timer > 10) {
+  } else if(timer > 15) {
     timerEl.className = "timer warning";
   } else {
     timerEl.className = "timer danger";
