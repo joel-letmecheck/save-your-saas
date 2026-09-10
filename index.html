@@ -337,7 +337,7 @@
         <div class="kicker">ENGINEERING WAR ROOM</div>
         <div class="stage-title">Decision <span id="stage">1 / 7</span></div>
       </div>
-      <div class="timer-wrap"><div class="label">⏱️ Time (click to pause)</div><div class="timer" id="timer" onclick="togglePause()">45.0s</div></div>
+      <div class="timer-wrap"><div class="label">⏱️ Time (click to pause)</div><div class="timer" id="timer" onclick="togglePause()">45s</div></div>
     </div>
 
     <div class="hud">
@@ -793,7 +793,7 @@ function showQuestion(){
   timer=45; isPaused=false; clearInterval(timerHandle);
   const stageEl=document.getElementById("stage");
   if(stageEl) stageEl.textContent=`${q+1} / 7`;
-  document.getElementById("timer").textContent="45.0s";
+  document.getElementById("timer").textContent="45s";
   document.getElementById("stage").textContent=(q+1)+" / 7";
   answered=false;
   const x=questions[q];
@@ -917,7 +917,7 @@ function tick(){
   if(isPaused) return;
   timer-=0.1; 
   const timerEl = document.getElementById("timer");
-  timerEl.textContent=Math.max(0,timer).toFixed(1)+"s";
+  timerEl.textContent=Math.ceil(Math.max(0,timer))+"s";
   
   // Change color based on time remaining
   if(timer > 30) {
